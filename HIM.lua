@@ -292,6 +292,8 @@ if useChest then
   sortItems(chestSlot,checkForStorageName())
 end
 
+print("PI: "..math.pi())
+
 -- Main Programm --
 turtle.select(1)
 if(newMine) then
@@ -329,5 +331,4 @@ if clearInv then
   print("Cleaning inventory!")
   clearInventory()
 end
-
 print("Finished Mine")
