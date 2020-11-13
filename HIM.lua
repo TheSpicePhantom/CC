@@ -173,6 +173,17 @@ end
 
 function placeTorch()
   if torchPlacement>=10 then
+    if not itemInSlot(torchSlot,"minecraft:torch") then
+      if not missingItem("minecraft:torch") then
+        sortItems(torchSlot,"minecraft:torch")
+      else
+        if waitForTorches then
+          sortItems(torchSlot,"minecraft:torch")
+        else
+          print("Out of torches!")
+        end
+      end
+    end
     if itemInSlot(torchSlot,"minecraft:torch") then
       turtle.turnLeft()
       turtle.turnLeft()
@@ -188,12 +199,6 @@ function placeTorch()
         print("Running low on torches")
       end
       torchPlacement = 0
-    else
-      if waitForTorches then
-        sortItems(torchSlot,"minecraft:torch")
-      else
-        print("Out of torches!")
-      end
     end
   end
   torchPlacement = torchPlacement + 1
