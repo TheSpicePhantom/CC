@@ -7,6 +7,7 @@ runningLowWarning = 16
 -- User Input Settings
 useTorches = false
 useChest = false
+useCoal = false
 clearInv = false
 waitForTorches = false
 allowMultipleStacks = false
@@ -137,7 +138,7 @@ function dropInventory (direction)
         elseif direction == "down" then
           turtle.dropDown()
         else
-          error("Unknown direction to drop to")
+          error("Unknown direction to drop to, error in program")
         end
       end
     end
@@ -168,6 +169,17 @@ end
 function checkInventoryFull(slot)
   if useChest and turtle.getItemCount(slot)>0 then
     clearInventory()
+  end
+end
+
+function calculateFuelNeed ()
+  return((lengthOfRows+3+lengthOfRows+lengthOfRows+3+lengthOfRows)*numberOfRows)
+end
+
+function burnCoal ()
+  for i,v in ipairs(itemInInventory("minecraft:coal")) do
+    turtle.select(v)
+    turtle.refuel(turtle.getItemCount(v))
   end
 end
 
@@ -226,6 +238,9 @@ function forward(times)
     if useTorches then
       placeTorch()
     end
+    if useCoal then
+      burnCoal()
+    end
   end
 end
 
@@ -256,6 +271,8 @@ print("Clear Inventory at the end?:")
 clearInv = read()=="y" and true
 print("Allow MultipleStacks?:")
 allowMultipleStacks = read()=="y" and true
+print("Burn Coal: ")
+useCoal = read()=="y" and true
 
 term.clear()
 term.setCursorPos(1,1)
@@ -268,6 +285,18 @@ print("waitForTorches: "..tostring(waitForTorches))
 print("useChest: "..tostring(useChest))
 print("clearInv: "..tostring(clearInv))
 print("allowMultipleStacks: "..tostring(allowMultipleStacks))
+print("Fuel guess: "..tostring(calculateFuelNeed))
+print("Fuel level: "..tostring(turtle.getFuelLevel()))
+write("Enough Fuel: ")
+if (calculateFuelNeed-turtle.getFuelLevel())<=0 then
+  print("Not Enough Fuel")
+  if useCoal then
+    print("Burn Coal is active could be enough")
+  end
+else
+  print("Enough Fuel")
+end
+print("useCoal: "..tostring(useCoal))
 write("Order of Items in Inventory does not matter. \nPlease add: 1x64 Cobblestone ")
 if useTorches then
   write(", 1x64 Torches")
@@ -296,8 +325,6 @@ if useChest then
   firstOpenSlot = firstOpenSlot + 1
   sortItems(chestSlot,checkForStorageName())
 end
-
-print("PI: "..math.pi())
 
 -- Main Programm --
 turtle.select(1)
