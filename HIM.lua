@@ -14,6 +14,7 @@ clearInv = false
 fastMode = false
 waitForTorches = false
 allowMultipleStacks = false
+returnToStart = false
 
 -- Work Settings (DONT CHANGE...Changed by Program)
 torchPlacement = 0
@@ -24,15 +25,6 @@ firstOpenSlot = 2
 torchSlot = 0
 chestSlot = 0
 bucketSlot = 0
-
--- function has_value (tab, val)
---     for index, value in ipairs(tab) do
---         if value == val then
---             return true
---         end
---     end
---     return false
--- end
 
 function itemInSlot(slot,name)
   details = turtle.getItemDetail(slot)
@@ -120,7 +112,6 @@ function checkForStorageName()
     while storageName=="" do
       storageName=__checkForStorageName()
       sleep(0.5)
-      print("storageName: "..storageName)
     end
   end
   return storageName
@@ -131,21 +122,17 @@ function dropInventory (direction)
     if (allowMultipleStacks and not (itemInSlot(i,storageName) or itemInSlot(i,"minecraft:torches"))) or not allowMultipleStacks then
       turtle.select(i)
       if direction == "up" then
-        turtle.dropUp()
+        drop = turtle.dropUp
+      elseif direction == "down" then
+        drop = turtle.dropDown
       else
-        turtle.dropDown()
+        error("Unknown direction to drop to, error in program")
       end
+      drop()
       while turtle.getItemCount(i)>0 do
         print("Couldn't drop items... trying again")
         sleep(2)
-        turtle.select(i)
-        if direction == "up" then
-          turtle.dropUp()
-        elseif direction == "down" then
-          turtle.dropDown()
-        else
-          error("Unknown direction to drop to, error in program")
-        end
+        drop()
       end
     end
   end
@@ -161,10 +148,6 @@ function clearInventory ()
     turtle.digUp()
   else
     turtle.digDown()
-    turtle.down()
-    turtle.select(1)
-    turtle.placeDown()
-    turtle.up()
     turtle.select(chestSlot)
     turtle.placeDown()
     dropInventory("down")
@@ -172,8 +155,8 @@ function clearInventory ()
   turtle.select(1)
 end
 
-function checkInventoryFull(slot)
-  if useChest and turtle.getItemCount(slot)>0 then
+function checkInventoryFull()
+  if turtle.getItemCount(16)>0 then
     clearInventory()
   end
 end
@@ -185,6 +168,9 @@ function calculateFuelNeed()
   end
   fuelneeded = fuelneeded + lengthOfRows*4*numberOfRows
   fuelneeded = fuelneeded + rowSpacing*2*numberOfRows
+  if returnToStart then
+    fuelneeded = fuelneeded + numberOfRows*rowSpacing*2
+  end
   return fuelneeded
 end
 
@@ -277,6 +263,9 @@ function forward(times)
       if useTorches then
         placeTorch()
       end
+    else
+      turtle.select(1)
+      turtle.placeDown()
     end
   end
 end
@@ -339,6 +328,9 @@ if not fastMode then
     itemsNeeded = itemsNeeded..", 1x Bucket"
   end
 end
+print("Return to start Point?: ")
+returnToStart = read()=="y" and true
+confirmationScreen = returnToStart and confirmationScreen.."returnToStart: true\n" or confirmationScreen
 
 term.clear()
 term.setCursorPos(1,1)
@@ -348,12 +340,9 @@ read()
 term.clear()
 term.setCursorPos(1,1)
 confirmationScreen = ""
-confirmationScreen = confirmationScreen.."Fuel guess: "..tostring(calculateFuelNeed()).."\n"
-confirmationScreen = confirmationScreen.."Fuel level: "..tostring(turtle.getFuelLevel()).."\n"
-confirmationScreen = confirmationScreen.."Enough Fuel: "
-if (calculateFuelNeed()-turtle.getFuelLevel())<=0 then
+if (turtle.getFuelLevel()-calculateFuelNeed())<=0 then
   confirmationScreen = confirmationScreen.."Not Enough Fuel\n"
-  if useCoal then
+  if useCoal or useLava then
     confirmationScreen = confirmationScreen.."Burn Coal is active could be enough\n"
   end
 else
@@ -424,6 +413,13 @@ for i = 1,tonumber(numberOfRows) do
   if useCoal then
     burnCoal()
   end
+end
+if returnToStart then
+  turtle.turnLeft()
+  turtle.turnLeft()
+  forward(numberOfRows*rowSpacing*2)
+  turtle.turnLeft()
+  turtle.turnLeft()
 end
 if clearInv then
   print("Cleaning inventory!")
