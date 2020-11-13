@@ -8,6 +8,7 @@ runningLowWarning = 16
 useTorches = false
 useChest = false
 useCoal = false
+useLava = false
 clearInv = false
 waitForTorches = false
 allowMultipleStacks = false
@@ -18,6 +19,9 @@ remoteStorage = false
 remoteStorageNames = {"enderstorage:ender_storage"}
 storageName = ""
 firstOpenSlot = 2
+torchSlot = 0
+chestSlot = 0
+bucketSlot = 0
 
 function has_value (tab, val)
     for index, value in ipairs(tab) do
@@ -173,14 +177,43 @@ function checkInventoryFull(slot)
 end
 
 function calculateFuelNeed ()
+  fuelneeded = 0
+  if newMine then
+    fuelneeded = fuelneeded + 3
+  end
+
   return((lengthOfRows+3+lengthOfRows+lengthOfRows+3+lengthOfRows)*numberOfRows)
 end
 
-function burnCoal ()
+function burnCoal()
   for i,v in ipairs(itemInInventory("minecraft:coal")) do
     turtle.select(v)
-    turtle.refuel(turtle.getItemCount(v))
+    turtle.refuel()
   end
+end
+
+function oneBucket()
+  if itemInSlot(bucketSlot,"minecraft:bucket") then
+    details = turtle.getItemDetail(bucketSlot)
+    if details.count >1 then
+      turtle.dropUp(details.count - 1)
+    end
+    return true
+  end
+  return false
+end
+
+function checkForLava()
+  if oneBucket then
+    bool,details = turtle.inspectDown()
+    if bool then
+      if details.name == "minecraft:lava" and details.level == 0 then
+        turtle.select(bucketSlot)
+        turtle.useDown()
+      end
+    end
+  end
+
 end
 
 function placeTorch()
@@ -226,6 +259,9 @@ function forward(times)
     while (turtle.detectUp()) do
       turtle.digUp()
       sleep(0.4)
+    end
+    if useLava then
+      checkForLava()
     end
     if turtle.getItemCount(1) < 16 then
       sortItems(1,"minecraft:cobblestone")
@@ -273,6 +309,8 @@ print("Allow MultipleStacks?:")
 allowMultipleStacks = read()=="y" and true
 print("Burn Coal: ")
 useCoal = read()=="y" and true
+print("Brun Lava: ")
+useLava = read()=="y" and true
 
 term.clear()
 term.setCursorPos(1,1)
@@ -297,12 +335,16 @@ else
   print("Enough Fuel")
 end
 print("useCoal: "..tostring(useCoal))
+print("useLava: "..tostring(useLava))
 write("Order of Items in Inventory does not matter. \nPlease add: 1x64 Cobblestone ")
 if useTorches then
   write(", 1x64 Torches")
 end
 if useChest then
     write(", 1x64 Chest or 1x Remote Storage")
+end
+if useLava then
+  write(", 1x Bucket")
 end
 if allowMultipleStacks then
   write(". \nYou can also add more of Chests or Torches")
@@ -324,6 +366,11 @@ if useChest then
   chestSlot = firstOpenSlot
   firstOpenSlot = firstOpenSlot + 1
   sortItems(chestSlot,checkForStorageName())
+end
+if useLava then
+  bucketSlot = firstOpenSlot
+  firstOpenSlot = firstOpenSlot + 1
+  sortItems(bucketSlot, "minecraft:bucket")
 end
 
 -- Main Programm --
