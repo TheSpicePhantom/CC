@@ -19,7 +19,8 @@ returnToStart = false
 -- Work Settings (DONT CHANGE...Changed by Program)
 torchPlacement = 0
 remoteStorage = false
-remoteStorageNames = {"enderstorage:ender_storage"}
+localStorageNames = {"minecraft:chest","minecraft:trapped_chest","appliedenergistics2:sky_stone_chest","appliedenergistics2:smooth_sky_stone_chest","ironchest:iron_chest","ironchest:gold_chest","ironchest:diamond_chest","ironchest:copper_chest","ironchest:silver_chest","ironchest:crystal_chest","ironchest:obsidian_chest","quark:oak_chest","quark:spruce_chest","quark:birch_chest","quark:jungle_chest","quark:acacia_chest","quark:dark_oak_chest","quark:crimson_chest","quark:warped_chest","quark:nether_brick_chest","quark:purpur_chest","quark:prismarine_chest","quark:mushroom_chest"}
+remoteStorageNames = {"enderstorage:ender_storage","enderchests:ender_chest","dimstorage:dimensional_chest"}
 storageName = ""
 firstOpenSlot = 2
 torchSlot = 0
@@ -93,8 +94,10 @@ function sortItems(slot,name)
 end
 
 function __checkForStorageName()
-  if not missingItem("minecraft:chest") then
-    return "minecraft:chest"
+  for k,v in pairs(localStorageNames) do
+    if not missingItem(v) then
+      return v
+    end
   end
   for k,v in pairs(remoteStorageNames) do
     if not missingItem(v) then
@@ -128,11 +131,13 @@ function dropInventory (direction)
       else
         error("Unknown direction to drop to, error in program")
       end
-      drop()
-      while turtle.getItemCount(i)>0 do
+      while true do
+        drop()
+        if turtle.getItemCount(i)==0 then
+          break
+        end
         print("Couldn't drop items... trying again")
         sleep(2)
-        drop()
       end
     end
   end
