@@ -1,31 +1,31 @@
 --General Settings
-lengthOfRows = 10
-numberOfRows = 5
+lengthOfRows = 5
+rowSpacing = 3
+numberOfRows = 1
 maxTorchDistance = 10
 runningLowWarning = 16
 
 -- User Input Settings
 useTorches = false
 useChest = false
+useCoal = false
+useLava = false
 clearInv = false
+fastMode = false
 waitForTorches = false
 allowMultipleStacks = false
+returnToStart = false
 
 -- Work Settings (DONT CHANGE...Changed by Program)
 torchPlacement = 0
 remoteStorage = false
-remoteStorageNames = {"enderstorage:ender_storage"}
+localStorageNames = {"minecraft:chest","minecraft:trapped_chest","appliedenergistics2:sky_stone_chest","appliedenergistics2:smooth_sky_stone_chest","ironchest:iron_chest","ironchest:gold_chest","ironchest:diamond_chest","ironchest:copper_chest","ironchest:silver_chest","ironchest:crystal_chest","ironchest:obsidian_chest","quark:oak_chest","quark:spruce_chest","quark:birch_chest","quark:jungle_chest","quark:acacia_chest","quark:dark_oak_chest","quark:crimson_chest","quark:warped_chest","quark:nether_brick_chest","quark:purpur_chest","quark:prismarine_chest","quark:mushroom_chest"}
+remoteStorageNames = {"enderstorage:ender_storage","enderchests:ender_chest","dimstorage:dimensional_chest"}
 storageName = ""
 firstOpenSlot = 2
-
-function has_value (tab, val)
-    for index, value in ipairs(tab) do
-        if value == val then
-            return true
-        end
-    end
-    return false
-end
+torchSlot = 0
+chestSlot = 0
+bucketSlot = 0
 
 function itemInSlot(slot,name)
   details = turtle.getItemDetail(slot)
@@ -94,8 +94,10 @@ function sortItems(slot,name)
 end
 
 function __checkForStorageName()
-  if not missingItem("minecraft:chest") then
-    return "minecraft:chest"
+  for k,v in pairs(localStorageNames) do
+    if not missingItem(v) then
+      return v
+    end
   end
   for k,v in pairs(remoteStorageNames) do
     if not missingItem(v) then
@@ -113,7 +115,6 @@ function checkForStorageName()
     while storageName=="" do
       storageName=__checkForStorageName()
       sleep(0.5)
-      print("storageName: "..storageName)
     end
   end
   return storageName
@@ -124,23 +125,22 @@ function dropInventory (direction)
     if (allowMultipleStacks and not (itemInSlot(i,storageName) or itemInSlot(i,"minecraft:torches"))) or not allowMultipleStacks then
       turtle.select(i)
       if direction == "up" then
-        turtle.dropUp()
+        drop = turtle.dropUp
+      elseif direction == "down" then
+        drop = turtle.dropDown
       else
-        turtle.dropDown()
+        error("Unknown direction to drop to, error in program")
       end
-      while turtle.getItemCount(i)>0 do
+      while true do
+        drop()
+        if turtle.getItemCount(i)==0 then
+          break
+        end
         print("Couldn't drop items... trying again")
         sleep(2)
-        turtle.select(i)
-        if direction == "up" then
-          turtle.dropUp()
-        elseif direction == "down" then
-          turtle.dropDown()
-        else
-          error("Unknown direction to drop to")
-        end
       end
     end
+  end
 end
 
 function clearInventory ()
@@ -151,13 +151,8 @@ function clearInventory ()
     dropInventory("up")
     turtle.select(chestSlot)
     turtle.digUp()
-    end
   else
     turtle.digDown()
-    turtle.down()
-    turtle.select(1)
-    turtle.placeDown()
-    turtle.up()
     turtle.select(chestSlot)
     turtle.placeDown()
     dropInventory("down")
@@ -165,14 +160,68 @@ function clearInventory ()
   turtle.select(1)
 end
 
-function checkInventoryFull(slot)
-  if useChest and turtle.getItemCount(slot)>0 then
+function checkInventoryFull()
+  if turtle.getItemCount(16)>0 then
     clearInventory()
+  end
+end
+
+function calculateFuelNeed()
+  fuelneeded = 0
+  if newMine then
+    fuelneeded = fuelneeded + rowSpacing
+  end
+  fuelneeded = fuelneeded + lengthOfRows*4*numberOfRows
+  fuelneeded = fuelneeded + rowSpacing*2*numberOfRows
+  if returnToStart then
+    fuelneeded = fuelneeded + numberOfRows*rowSpacing*2
+  end
+  return fuelneeded
+end
+
+function burnCoal()
+  for i,v in ipairs(itemInInventory("minecraft:coal")) do
+    turtle.select(v)
+    turtle.refuel()
+  end
+end
+
+function oneBucket()
+  if itemInSlot(bucketSlot,"minecraft:bucket") then
+    details = turtle.getItemDetail(bucketSlot)
+    if details.count >1 then
+      turtle.select(bucketSlot)
+      turtle.dropUp(details.count - 1)
+      turtle.select(1)
+    end
+    return true
+  end
+  return false
+end
+
+function checkForLava()
+  bool,details = turtle.inspectDown()
+  if details.name == "minecraft:lava" and details.state.level == 0 and oneBucket() then
+    turtle.select(bucketSlot)
+    turtle.placeDown()
+    turtle.refuel()
+    turtle.select(1)
   end
 end
 
 function placeTorch()
   if torchPlacement>=10 then
+    if not itemInSlot(torchSlot,"minecraft:torch") then
+      if not missingItem("minecraft:torch") then
+        sortItems(torchSlot,"minecraft:torch")
+      else
+        if waitForTorches then
+          sortItems(torchSlot,"minecraft:torch")
+        else
+          print("Out of torches!")
+        end
+      end
+    end
     if itemInSlot(torchSlot,"minecraft:torch") then
       turtle.turnLeft()
       turtle.turnLeft()
@@ -188,12 +237,6 @@ function placeTorch()
         print("Running low on torches")
       end
       torchPlacement = 0
-    else
-      if waitForTorches then
-        sortItems(torchSlot,"minecraft:torch")
-      else
-        print("Out of torches!")
-      end
     end
   end
   torchPlacement = torchPlacement + 1
@@ -210,16 +253,24 @@ function forward(times)
       turtle.digUp()
       sleep(0.4)
     end
-    if turtle.getItemCount(1) < 16 then
-      sortItems(1,"minecraft:cobblestone")
-    end
-    turtle.select(1)
-    turtle.placeDown()
-    if useChest then
-      checkInventoryFull()
-    end
-    if useTorches then
-      placeTorch()
+    if not fastMode then
+      if useLava then
+        checkForLava()
+      end
+      if turtle.getItemCount(1) < 16 then
+        sortItems(1,"minecraft:cobblestone")
+      end
+      turtle.select(1)
+      turtle.placeDown()
+      if useChest then
+        checkInventoryFull()
+      end
+      if useTorches then
+        placeTorch()
+      end
+    else
+      turtle.select(1)
+      turtle.placeDown()
     end
   end
 end
@@ -228,53 +279,87 @@ end
 term.clear()
 term.setCursorPos(1,1)
 
+confirmationScreen = "Starting to mine with:\n"
+itemsNeeded = "Order of Items in Inventory does not matter. \nPlease add: 1x64 Cobblestone"
 local termInput = ""
 
 print("Start new Mine? (y for yes):")
 newMine = read()=="y" and true or false
-print("Length of rows? (Default: "..String(lengthOfRows).."):")
+confirmationScreen = newMine and confirmationScreen.."New mine: true\n" or confirmationScreen
+print("Length of rows? (Default: "..tostring(lengthOfRows).."):")
 termInput = read()
 lengthOfRows = termInput=="" and lengthOfRows or tonumber(termInput)
+confirmationScreen = confirmationScreen.."Row Length: "..tostring(lengthOfRows).."\n"
 print("Number of rows? (Default: 5): ")
 termInput = read()
 numberOfRows =  termInput=="" and numberOfRows or tonumber(termInput)
+confirmationScreen = confirmationScreen.."Row Length: "..tostring(lengthOfRows).."\n"
 print("Following y for yes or anything else for no:")
-print("Use Torches?:")
-useTorches = read()=="y" and true
-if useTorches then
-  print("Wait for Torches?:")
-  waitForTorches = read()=="y" and true
+print("Fast Mode?:")
+fastMode = read()=="y" and true
+confirmationScreen = confirmationScreen.."Fast Mode: "..tostring(fastMode).."\n"
+if not fastMode then
+  print("Use Torches?:")
+  useTorches = read()=="y" and true
+  if useTorches then
+    confirmationScreen = confirmationScreen.."useTorches: true\n"
+    itemsNeeded = itemsNeeded..", 1x64 Torches"
+    print("Wait for Torches?:")
+    waitForTorches = read()=="y" and true
+    confirmationScreen = waitForTorches and confirmationScreen.."waitForTorches: true\n" or confirmationScreen
+  end
+  print("Use Chest?:")
+  useChest = read()=="y" and true
+  if useChest then
+    confirmationScreen = confirmationScreen.."useChest: true\n"
+    itemsNeeded = itemsNeeded..", 1x64 Chests"
+    print("Clear Inventory at the end?:")
+    clearInv = read()=="y" and true
+    confirmationScreen = clearInv and confirmationScreen.."clearInv: true\n" or confirmationScreen
+  end
+  if useChest or useTorches then
+    print("Allow MultipleStacks?:")
+    allowMultipleStacks = read()=="y" and true
+    confirmationScreen = allowMultipleStacks and confirmationScreen.."allowMultipleStacks: true\n" or confirmationScreen
+  end
+  print("Burn Coal: ")
+  useCoal = read()=="y" and true
+  confirmationScreen = useCoal and confirmationScreen.."useCoal: true\n" or confirmationScreen
+  print("Warning: Lava only useful on height 11")
+  print("Burn Lava: ")
+  useLava = read()=="y" and true
+  if useLava then
+    confirmationScreen = confirmationScreen.."useLava: true\n"
+    itemsNeeded = itemsNeeded..", 1x Bucket"
+  end
 end
-print("Use Chest?:")
-useChest = read()=="y" and true
-print("Clear Inventory at the end?:")
-clearInv = read()=="y" and true
-print("Allow MultipleStacks?:")
-allowMultipleStacks = read()=="y" and true
+print("Return to start Point?: ")
+returnToStart = read()=="y" and true
+confirmationScreen = returnToStart and confirmationScreen.."returnToStart: true\n" or confirmationScreen
 
 term.clear()
 term.setCursorPos(1,1)
-print("Starting to mine with:")
-print("New mine: "..tostring(newMine))
-print("Row Length: "..tostring(lengthOfRows))
-print("Number of rows: "..tostring(numberOfRows))
-print("useTorches: "..tostring(useTorches))
-print("waitForTorches: "..tostring(waitForTorches))
-print("useChest: "..tostring(useChest))
-print("clearInv: "..tostring(clearInv))
-print("allowMultipleStacks: "..tostring(allowMultipleStacks))
-write("Order of Items in Inventory does not matter. \nPlease add: 1x64 Cobblestone ")
-if useTorches then
-  write(", 1x64 Torches")
-end
-if useChest then
-    write(", 1x64 Chest or 1x Remote Storage")
-end
-if allowMultipleStacks then
-  write(". \nYou can also add more of Chests or Torches")
-end
-print("\nStart? (else CTRL+R)")
+write(confirmationScreen)
 read()
+
+term.clear()
+term.setCursorPos(1,1)
+confirmationScreen = ""
+if (turtle.getFuelLevel()-calculateFuelNeed())<=0 then
+  confirmationScreen = confirmationScreen.."Not Enough Fuel\n"
+  if useCoal or useLava then
+    confirmationScreen = confirmationScreen.."Burn Coal is active could be enough\n"
+  end
+else
+  confirmationScreen = confirmationScreen.."Enough Fuel\n"
+end
+confirmationScreen = confirmationScreen..itemsNeeded..".\n"
+if allowMultipleStacks then
+  confirmationScreen = confirmationScreen.."You can also add more Torches or Chests\n"
+end
+confirmationScreen = confirmationScreen.."Start? (else CTRL+R)"
+  print(confirmationScreen)
+  read()
 
 term.clear()
 term.setCursorPos(1,1)
@@ -291,11 +376,17 @@ if useChest then
   firstOpenSlot = firstOpenSlot + 1
   sortItems(chestSlot,checkForStorageName())
 end
+if useLava then
+  bucketSlot = firstOpenSlot
+  firstOpenSlot = firstOpenSlot + 1
+  sortItems(bucketSlot, "minecraft:bucket")
+  oneBucket()
+end
 
 -- Main Programm --
 turtle.select(1)
 if(newMine) then
-  forward(3)
+  forward(rowSpacing)
 end
 for i = 1,tonumber(numberOfRows) do
   print("starting row: "..tostring(i) .. " " .. turtle.getFuelLevel())
@@ -304,7 +395,7 @@ for i = 1,tonumber(numberOfRows) do
   forward(lengthOfRows)
   turtle.turnRight()
   -- Turnaround
-  forward(3)
+  forward(rowSpacing)
   turtle.turnRight()
   forward(lengthOfRows)
   turtle.turnRight()
@@ -317,17 +408,26 @@ for i = 1,tonumber(numberOfRows) do
   forward(lengthOfRows)
   turtle.turnLeft()
   -- Turnaround
-  forward(3)
+  forward(rowSpacing)
   turtle.turnLeft()
   forward(lengthOfRows)
   turtle.turnLeft()
   turtle.dig()
   turtle.turnRight()
   turtle.turnRight()
+  if useCoal then
+    burnCoal()
+  end
+end
+if returnToStart then
+  turtle.turnLeft()
+  turtle.turnLeft()
+  forward(numberOfRows*rowSpacing*2)
+  turtle.turnLeft()
+  turtle.turnLeft()
 end
 if clearInv then
   print("Cleaning inventory!")
   clearInventory()
 end
-
 print("Finished Mine")
