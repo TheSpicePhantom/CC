@@ -1,7 +1,7 @@
 --General Settings
-lengthOfRows = 5
+lengthOfRows = 10
 rowSpacing = 3
-numberOfRows = 1
+numberOfRows = 5
 maxTorchDistance = 10
 runningLowWarning = 16
 
@@ -247,11 +247,11 @@ function forward(times)
   for i=1,times do
     while (not turtle.forward()) do
       turtle.dig()
-      sleep(0.4)
+      sleep(0.5)
     end
     while (turtle.detectUp()) do
       turtle.digUp()
-      sleep(0.4)
+      sleep(0.5)
     end
     if not fastMode then
       if useLava then
@@ -290,7 +290,7 @@ print("Length of rows? (Default: "..tostring(lengthOfRows).."):")
 termInput = read()
 lengthOfRows = termInput=="" and lengthOfRows or tonumber(termInput)
 confirmationScreen = confirmationScreen.."Row Length: "..tostring(lengthOfRows).."\n"
-print("Number of rows? (Default: 5): ")
+print("Number of rows? (Default: "..tostring(numberOfRows).."): ")
 termInput = read()
 numberOfRows =  termInput=="" and numberOfRows or tonumber(termInput)
 confirmationScreen = confirmationScreen.."Row Length: "..tostring(lengthOfRows).."\n"
