@@ -19,7 +19,7 @@ returnToStart = false
 -- Work Settings (DONT CHANGE...Changed by Program)
 torchPlacement = 0
 remoteStorage = false
-localStorageNames = {"minecraft:chest","minecraft:trapped_chest","appliedenergistics2:sky_stone_chest","appliedenergistics2:smooth_sky_stone_chest","ironchest:iron_chest","ironchest:gold_chest","ironchest:diamond_chest","ironchest:copper_chest","ironchest:silver_chest","ironchest:crystal_chest","ironchest:obsidian_chest","quark:oak_chest","quark:spruce_chest","quark:birch_chest","quark:jungle_chest","quark:acacia_chest","quark:dark_oak_chest","quark:crimson_chest","quark:warped_chest","quark:nether_brick_chest","quark:purpur_chest","quark:prismarine_chest","quark:mushroom_chest"}
+localStorageNames = {"minecraft:chest","minecraft:trapped_chest","appliedenergistics2:sky_stone_chest","appliedenergistics2:smooth_sky_stone_chest","ironchest:iron_chest","ironchest:gold_chest","ironchest:diamond_chest","ironchest:copper_chest","ironchest:silver_chest","ironchest:crystal_chest","ironchest:obsidian_chest","quark:oak_chest","quark:spruce_chest","quark:birch_chest","quark:jungle_chest","quark:acacia_chest","quark:dark_oak_chest","quark:crimson_chest","quark:warped_chest","quark:nether_brick_chest","quark:purpur_chest","quark:prismarine_chest","quark:mushroom_chest", "charm:oak_chest", "charm:acacia_chest", "charm:spruce_chest"}
 remoteStorageNames = {"enderstorage:ender_storage","enderchests:ender_chest","dimstorage:dimensional_chest"}
 storageName = ""
 firstOpenSlot = 2
